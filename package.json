@@ -1,0 +1,26 @@
+{
+  "name": "voronoijs",
+  "version": "0.1.0",
+  "description": "Experimental generation of voronoi diagrams with specific areas",
+  "main": "src/Voronoi.js",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "jest"
+  },
+  "keywords": [
+    "voronoi",
+    "graph",
+    "chart",
+    "area",
+    "visualization",
+    "math",
+    "algorithm"
+  ],
+  "author": "John Ellmore",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1",
+    "rollup": "^1.29.0"
+  }
+}
