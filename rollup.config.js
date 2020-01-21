@@ -8,7 +8,7 @@ export default [
   {
     input: "src/Voronoi.js",
     output: {
-      name: "voronoi",
+      name: "Voronoi",
       file: pkg.browser,
       format: "umd"
     },

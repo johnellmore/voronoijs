@@ -1,7 +1,7 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
-  (global = global || self, global.voronoi = factory());
+  (global = global || self, global.Voronoi = factory());
 }(this, (function () { 'use strict';
 
   // ---------------------------------------------------------------------------
@@ -528,6 +528,23 @@
   var Vertex = function Vertex(x, y) {
     this.x = x;
     this.y = y;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Circle event methods
+  // rhill 2011-06-07: For some reasons, performance suffers significantly
+  // when instanciating a literal object instead of an empty ctor
+  var CircleEvent = function CircleEvent() {
+    // rhill 2013-10-12: it helps to state exactly what we are at ctor time.
+    this.arc = null;
+    this.rbLeft = null;
+    this.rbNext = null;
+    this.rbParent = null;
+    this.rbPrevious = null;
+    this.rbRed = false;
+    this.rbRight = null;
+    this.site = null;
+    this.x = this.y = this.ycenter = 0;
   };
 
   function Voronoi() {
@@ -1093,7 +1110,7 @@
     var circleEvent = this.circleEventJunkyard.pop();
 
     if (!circleEvent) {
-      circleEvent = new this.CircleEvent();
+      circleEvent = new CircleEvent();
     }
 
     circleEvent.arc = arc;

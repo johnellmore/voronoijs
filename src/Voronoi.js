@@ -1,9 +1,10 @@
-import RBTree from "./RBTree";
-import Diagram from "./Diagram";
-import Cell from "./Cell";
 import Beachsection from "./Beachsection";
+import Cell from "./Cell";
+import CircleEvent from "./CircleEvent";
+import Diagram from "./Diagram";
 import Edge from "./Edge";
 import Halfedge from "./Halfedge";
+import RBTree from "./RBTree";
 import Vertex from "./Vertex";
 
 function Voronoi() {
@@ -572,7 +573,7 @@ Voronoi.prototype.attachCircleEvent = function(arc) {
   // recycle circle event object if possible
   var circleEvent = this.circleEventJunkyard.pop();
   if (!circleEvent) {
-    circleEvent = new this.CircleEvent();
+    circleEvent = new CircleEvent();
   }
   circleEvent.arc = arc;
   circleEvent.site = cSite;
