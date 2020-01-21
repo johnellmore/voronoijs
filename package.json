@@ -2,10 +2,12 @@
   "name": "voronoijs",
   "version": "0.1.0",
   "description": "Experimental generation of voronoi diagrams with specific areas",
-  "main": "src/Voronoi.js",
+  "main": "dist/voronoi.js",
+  "module": "dist/voronoi.esm.js",
+  "browser": "dist/voronoi.umd.js",
   "scripts": {
     "build": "rollup -c",
-    "test": "jest"
+    "test": "jest && npm build"
   },
   "keywords": [
     "voronoi",
@@ -19,8 +21,15 @@
   "author": "John Ellmore",
   "license": "MIT",
   "devDependencies": {
-    "jest": "^24.9.0",
     "prettier": "^1.19.1",
-    "rollup": "^1.29.0"
+    "@babel/core": "7.8.3",
+    "@babel/preset-env": "7.8.3",
+    "babel-core": "7.0.0-bridge.0",
+    "babel-jest": "24.9.0",
+    "jest": "24.9.0",
+    "rollup": "1.29.0",
+    "rollup-plugin-babel": "4.3.3",
+    "rollup-plugin-commonjs": "10.1.0",
+    "rollup-plugin-node-resolve": "5.2.0"
   }
 }
