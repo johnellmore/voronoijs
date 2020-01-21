@@ -2,4 +2,4 @@
 // when instanciating a literal object instead of an empty ctor
 const Beachsection = function() {};
 
-module.exports = Beachsection;
+export default Beachsection;

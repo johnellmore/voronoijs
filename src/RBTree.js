@@ -283,4 +283,4 @@ RBTree.prototype.getLast = function(node) {
   return node;
 };
 
-module.exports = RBTree;
+export default RBTree;

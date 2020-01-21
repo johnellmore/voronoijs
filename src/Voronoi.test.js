@@ -1,4 +1,4 @@
-const Voronoi = require("./Voronoi");
+import Voronoi from "./Voronoi";
 
 test("Can make a diagram from an empty set of sites", () => {
   const v = new Voronoi();

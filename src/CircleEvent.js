@@ -16,4 +16,4 @@ const CircleEvent = function() {
   this.x = this.y = this.ycenter = 0;
 };
 
-module.exports = CircleEvent;
+export default CircleEvent;

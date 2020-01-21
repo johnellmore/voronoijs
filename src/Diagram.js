@@ -4,4 +4,4 @@ const Diagram = function(site) {
   this.site = site;
 };
 
-module.exports = Diagram;
+export default Diagram;

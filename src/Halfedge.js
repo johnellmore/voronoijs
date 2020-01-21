@@ -30,4 +30,4 @@ Halfedge.prototype.getEndpoint = function() {
   return this.edge.lSite === this.site ? this.edge.vb : this.edge.va;
 };
 
-module.exports = Halfedge;
+export default Halfedge;

@@ -3,4 +3,4 @@ const Vertex = function(x, y) {
   this.y = y;
 };
 
-module.exports = Vertex;
+export default Vertex;

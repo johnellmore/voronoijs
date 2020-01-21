@@ -8,4 +8,4 @@ const Edge = function(lSite, rSite) {
   this.va = this.vb = null;
 };
 
-module.exports = Edge;
+export default Edge;

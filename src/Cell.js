@@ -136,4 +136,4 @@ Cell.prototype.pointIntersection = function(x, y) {
   return 1;
 };
 
-module.exports = Cell;
+export default Cell;

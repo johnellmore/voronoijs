@@ -1,10 +1,10 @@
-const RBTree = require("./RBTree");
-const Diagram = require("./Diagram");
-const Cell = require("./Cell");
-const Beachsection = require("./Beachsection");
-const Edge = require("./Edge");
-const Halfedge = require("./Halfedge");
-const Vertex = require("./Vertex");
+import RBTree from "./RBTree";
+import Diagram from "./Diagram";
+import Cell from "./Cell";
+import Beachsection from "./Beachsection";
+import Edge from "./Edge";
+import Halfedge from "./Halfedge";
+import Vertex from "./Vertex";
 
 function Voronoi() {
   this.vertices = null;
@@ -1275,4 +1275,4 @@ Voronoi.prototype.compute = function(sites, bbox) {
   return diagram;
 };
 
-module.exports = Voronoi;
+export default Voronoi;
