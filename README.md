@@ -1,8 +1,11 @@
 # voronoijs
 
-A Javascript implementation of Steven J. Fortune's algorithm to efficiently compute Voronoi diagrams. The Voronoi object's purpose is to solely compute a Voronoi diagram. There are no production dependencies--only dev dependencies for development usage. It also contains no rendering code: that is left to the user of the library.
+A Javascript implementation of Steven J. Fortune's algorithm to efficiently compute Voronoi diagrams. There are no production dependencies--only dev dependencies for development usage. It also contains no rendering code: that is left to the user of the library.
 
-This implementation is forked from [Raymond Hill's excellent JS library](https://github.com/gorhill/Javascript-Voronoi). The goal with this fork is to support the modified version of the Fortune algorithm which can construct an additively weighted Voronoi diagram. Also, this refactors much of the implementation to use modern JavaScript syntax--ES modules, classes, etc.
+This implementation is forked from [Raymond Hill's excellent JS library](https://github.com/gorhill/Javascript-Voronoi). The goal with this fork is to support the modified version of the Fortune algorithm which can construct an additively weighted Voronoi diagram. Also, this refactors much of the implementation to use modern JavaScript syntax (ES modules, classes, etc.), and adds unit tests
+around the library.
+
+VERY MUCH A WORK IN PROGRESS. THIS PROBABLY ISN'T WHAT YOU WANT RIGHT NOW.
 
 ## License
 
