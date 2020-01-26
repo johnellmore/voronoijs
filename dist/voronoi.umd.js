@@ -4,6 +4,219 @@
   (global = global || self, global.Voronoi = factory());
 }(this, (function () { 'use strict';
 
+  // rhill 2011-06-07: For some reasons, performance suffers significantly
+  // when instanciating a literal object instead of an empty ctor
+  var Beachsection = function Beachsection() {};
+
+  // ---------------------------------------------------------------------------
+  // Cell methods
+  var Cell = function Cell(site) {
+    this.site = site;
+    this.halfedges = [];
+    this.closeMe = false;
+  };
+
+  Cell.prototype.init = function (site) {
+    this.site = site;
+    this.halfedges = [];
+    this.closeMe = false;
+    return this;
+  };
+
+  Cell.prototype.prepareHalfedges = function () {
+    var halfedges = this.halfedges;
+    var iHalfedge = halfedges.length;
+    var edge; // get rid of unused halfedges
+    // rhill 2011-05-27: Keep it simple, no point here in trying
+    // to be fancy: dangling edges are a typically a minority.
+
+    while (iHalfedge--) {
+      edge = halfedges[iHalfedge].edge;
+
+      if (!edge.vb || !edge.va) {
+        halfedges.splice(iHalfedge, 1);
+      }
+    } // rhill 2011-05-26: I tried to use a binary search at insertion
+    // time to keep the array sorted on-the-fly (in Cell.addHalfedge()).
+    // There was no real benefits in doing so, performance on
+    // Firefox 3.6 was improved marginally, while performance on
+    // Opera 11 was penalized marginally.
+
+
+    halfedges.sort(function (a, b) {
+      return b.angle - a.angle;
+    });
+    return halfedges.length;
+  }; // Return a list of the neighbor Ids
+
+
+  Cell.prototype.getNeighborIds = function () {
+    var neighbors = [];
+    var iHalfedge = this.halfedges.length;
+    var edge;
+
+    while (iHalfedge--) {
+      edge = this.halfedges[iHalfedge].edge;
+
+      if (edge.lSite !== null && edge.lSite.voronoiId != this.site.voronoiId) {
+        neighbors.push(edge.lSite.voronoiId);
+      } else if (edge.rSite !== null && edge.rSite.voronoiId != this.site.voronoiId) {
+        neighbors.push(edge.rSite.voronoiId);
+      }
+    }
+
+    return neighbors;
+  }; // Compute bounding box
+  //
+
+
+  Cell.prototype.getBbox = function () {
+    var halfedges = this.halfedges;
+    var iHalfedge = halfedges.length;
+    var xmin = Infinity;
+    var ymin = Infinity;
+    var xmax = -Infinity;
+    var ymax = -Infinity;
+    var v;
+    var vx;
+    var vy;
+
+    while (iHalfedge--) {
+      v = halfedges[iHalfedge].getStartpoint();
+      vx = v.x;
+      vy = v.y;
+
+      if (vx < xmin) {
+        xmin = vx;
+      }
+
+      if (vy < ymin) {
+        ymin = vy;
+      }
+
+      if (vx > xmax) {
+        xmax = vx;
+      }
+
+      if (vy > ymax) {
+        ymax = vy;
+      } // we dont need to take into account end point,
+      // since each end point matches a start point
+
+    }
+
+    return {
+      x: xmin,
+      y: ymin,
+      width: xmax - xmin,
+      height: ymax - ymin
+    };
+  }; // Return whether a point is inside, on, or outside the cell:
+  //   -1: point is outside the perimeter of the cell
+  //    0: point is on the perimeter of the cell
+  //    1: point is inside the perimeter of the cell
+  //
+
+
+  Cell.prototype.pointIntersection = function (x, y) {
+    // Check if point in polygon. Since all polygons of a Voronoi
+    // diagram are convex, then:
+    // http://paulbourke.net/geometry/polygonmesh/
+    // Solution 3 (2D):
+    //   "If the polygon is convex then one can consider the polygon
+    //   "as a 'path' from the first vertex. A point is on the interior
+    //   "of this polygons if it is always on the same side of all the
+    //   "line segments making up the path. ...
+    //   "(y - y0) (x1 - x0) - (x - x0) (y1 - y0)
+    //   "if it is less than 0 then P is to the right of the line segment,
+    //   "if greater than 0 it is to the left, if equal to 0 then it lies
+    //   "on the line segment"
+    var halfedges = this.halfedges;
+    var iHalfedge = halfedges.length;
+    var halfedge;
+    var p0;
+    var p1;
+    var r;
+
+    while (iHalfedge--) {
+      halfedge = halfedges[iHalfedge];
+      p0 = halfedge.getStartpoint();
+      p1 = halfedge.getEndpoint();
+      r = (y - p0.y) * (p1.x - p0.x) - (x - p0.x) * (p1.y - p0.y);
+
+      if (!r) {
+        return 0;
+      }
+
+      if (r > 0) {
+        return -1;
+      }
+    }
+
+    return 1;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Circle event methods
+  // rhill 2011-06-07: For some reasons, performance suffers significantly
+  // when instanciating a literal object instead of an empty ctor
+  var CircleEvent = function CircleEvent() {
+    // rhill 2013-10-12: it helps to state exactly what we are at ctor time.
+    this.arc = null;
+    this.rbLeft = null;
+    this.rbNext = null;
+    this.rbParent = null;
+    this.rbPrevious = null;
+    this.rbRed = false;
+    this.rbRight = null;
+    this.site = null;
+    this.x = this.y = this.ycenter = 0;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Diagram methods
+  var Diagram = function Diagram(site) {
+    this.site = site;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Edge methods
+  //
+  var Edge = function Edge(lSite, rSite) {
+    this.lSite = lSite;
+    this.rSite = rSite;
+    this.va = this.vb = null;
+  };
+
+  var Halfedge = function Halfedge(edge, lSite, rSite) {
+    this.site = lSite;
+    this.edge = edge; // 'angle' is a value to be used for properly sorting the
+    // halfsegments counterclockwise. By convention, we will
+    // use the angle of the line defined by the 'site to the left'
+    // to the 'site to the right'.
+    // However, border edges have no 'site to the right': thus we
+    // use the angle of line perpendicular to the halfsegment (the
+    // edge should have both end points defined in such case.)
+
+    if (rSite) {
+      this.angle = Math.atan2(rSite.y - lSite.y, rSite.x - lSite.x);
+    } else {
+      var va = edge.va;
+      var vb = edge.vb; // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
+      // but for performance purpose, these are expanded in place here.
+
+      this.angle = edge.lSite === lSite ? Math.atan2(vb.x - va.x, va.y - vb.y) : Math.atan2(va.x - vb.x, vb.y - va.y);
+    }
+  };
+
+  Halfedge.prototype.getStartpoint = function () {
+    return this.edge.lSite === this.site ? this.edge.va : this.edge.vb;
+  };
+
+  Halfedge.prototype.getEndpoint = function () {
+    return this.edge.lSite === this.site ? this.edge.vb : this.edge.va;
+  };
+
   // ---------------------------------------------------------------------------
   // Red-Black tree code (based on C version of "rbtree" by Franck Bui-Huu
   // https://github.com/fbuihuu/libtree/blob/master/rb.c
@@ -64,7 +277,8 @@
     // rotations (2 at most) hence the red-black tree properties are
     // preserved.
 
-    var grandpa, uncle;
+    var grandpa;
+    var uncle;
     node = successor;
 
     while (parent && parent.rbRed) {
@@ -126,10 +340,10 @@
 
     node.rbNext = node.rbPrevious = null; // <<<
 
-    var parent = node.rbParent,
-        left = node.rbLeft,
-        right = node.rbRight,
-        next;
+    var parent = node.rbParent;
+    var left = node.rbLeft;
+    var right = node.rbRight;
+    var next;
 
     if (!left) {
       next = right;
@@ -260,10 +474,10 @@
   };
 
   RBTree.prototype.rbRotateLeft = function (node) {
-    var p = node,
-        q = node.rbRight,
-        // can't be null
-    parent = p.rbParent;
+    var p = node;
+    var q = node.rbRight; // can't be null
+
+    var parent = p.rbParent;
 
     if (parent) {
       if (parent.rbLeft === p) {
@@ -287,10 +501,10 @@
   };
 
   RBTree.prototype.rbRotateRight = function (node) {
-    var p = node,
-        q = node.rbLeft,
-        // can't be null
-    parent = p.rbParent;
+    var p = node;
+    var q = node.rbLeft; // can't be null
+
+    var parent = p.rbParent;
 
     if (parent) {
       if (parent.rbLeft === p) {
@@ -329,222 +543,9 @@
     return node;
   };
 
-  // ---------------------------------------------------------------------------
-  // Diagram methods
-  var Diagram = function Diagram(site) {
-    this.site = site;
-  };
-
-  // ---------------------------------------------------------------------------
-  // Cell methods
-  var Cell = function Cell(site) {
-    this.site = site;
-    this.halfedges = [];
-    this.closeMe = false;
-  };
-
-  Cell.prototype.init = function (site) {
-    this.site = site;
-    this.halfedges = [];
-    this.closeMe = false;
-    return this;
-  };
-
-  Cell.prototype.prepareHalfedges = function () {
-    var halfedges = this.halfedges,
-        iHalfedge = halfedges.length,
-        edge; // get rid of unused halfedges
-    // rhill 2011-05-27: Keep it simple, no point here in trying
-    // to be fancy: dangling edges are a typically a minority.
-
-    while (iHalfedge--) {
-      edge = halfedges[iHalfedge].edge;
-
-      if (!edge.vb || !edge.va) {
-        halfedges.splice(iHalfedge, 1);
-      }
-    } // rhill 2011-05-26: I tried to use a binary search at insertion
-    // time to keep the array sorted on-the-fly (in Cell.addHalfedge()).
-    // There was no real benefits in doing so, performance on
-    // Firefox 3.6 was improved marginally, while performance on
-    // Opera 11 was penalized marginally.
-
-
-    halfedges.sort(function (a, b) {
-      return b.angle - a.angle;
-    });
-    return halfedges.length;
-  }; // Return a list of the neighbor Ids
-
-
-  Cell.prototype.getNeighborIds = function () {
-    var neighbors = [],
-        iHalfedge = this.halfedges.length,
-        edge;
-
-    while (iHalfedge--) {
-      edge = this.halfedges[iHalfedge].edge;
-
-      if (edge.lSite !== null && edge.lSite.voronoiId != this.site.voronoiId) {
-        neighbors.push(edge.lSite.voronoiId);
-      } else if (edge.rSite !== null && edge.rSite.voronoiId != this.site.voronoiId) {
-        neighbors.push(edge.rSite.voronoiId);
-      }
-    }
-
-    return neighbors;
-  }; // Compute bounding box
-  //
-
-
-  Cell.prototype.getBbox = function () {
-    var halfedges = this.halfedges,
-        iHalfedge = halfedges.length,
-        xmin = Infinity,
-        ymin = Infinity,
-        xmax = -Infinity,
-        ymax = -Infinity,
-        v,
-        vx,
-        vy;
-
-    while (iHalfedge--) {
-      v = halfedges[iHalfedge].getStartpoint();
-      vx = v.x;
-      vy = v.y;
-
-      if (vx < xmin) {
-        xmin = vx;
-      }
-
-      if (vy < ymin) {
-        ymin = vy;
-      }
-
-      if (vx > xmax) {
-        xmax = vx;
-      }
-
-      if (vy > ymax) {
-        ymax = vy;
-      } // we dont need to take into account end point,
-      // since each end point matches a start point
-
-    }
-
-    return {
-      x: xmin,
-      y: ymin,
-      width: xmax - xmin,
-      height: ymax - ymin
-    };
-  }; // Return whether a point is inside, on, or outside the cell:
-  //   -1: point is outside the perimeter of the cell
-  //    0: point is on the perimeter of the cell
-  //    1: point is inside the perimeter of the cell
-  //
-
-
-  Cell.prototype.pointIntersection = function (x, y) {
-    // Check if point in polygon. Since all polygons of a Voronoi
-    // diagram are convex, then:
-    // http://paulbourke.net/geometry/polygonmesh/
-    // Solution 3 (2D):
-    //   "If the polygon is convex then one can consider the polygon
-    //   "as a 'path' from the first vertex. A point is on the interior
-    //   "of this polygons if it is always on the same side of all the
-    //   "line segments making up the path. ...
-    //   "(y - y0) (x1 - x0) - (x - x0) (y1 - y0)
-    //   "if it is less than 0 then P is to the right of the line segment,
-    //   "if greater than 0 it is to the left, if equal to 0 then it lies
-    //   "on the line segment"
-    var halfedges = this.halfedges,
-        iHalfedge = halfedges.length,
-        halfedge,
-        p0,
-        p1,
-        r;
-
-    while (iHalfedge--) {
-      halfedge = halfedges[iHalfedge];
-      p0 = halfedge.getStartpoint();
-      p1 = halfedge.getEndpoint();
-      r = (y - p0.y) * (p1.x - p0.x) - (x - p0.x) * (p1.y - p0.y);
-
-      if (!r) {
-        return 0;
-      }
-
-      if (r > 0) {
-        return -1;
-      }
-    }
-
-    return 1;
-  };
-
-  // rhill 2011-06-07: For some reasons, performance suffers significantly
-  // when instanciating a literal object instead of an empty ctor
-  var Beachsection = function Beachsection() {};
-
-  // ---------------------------------------------------------------------------
-  // Edge methods
-  //
-  var Edge = function Edge(lSite, rSite) {
-    this.lSite = lSite;
-    this.rSite = rSite;
-    this.va = this.vb = null;
-  };
-
-  var Halfedge = function Halfedge(edge, lSite, rSite) {
-    this.site = lSite;
-    this.edge = edge; // 'angle' is a value to be used for properly sorting the
-    // halfsegments counterclockwise. By convention, we will
-    // use the angle of the line defined by the 'site to the left'
-    // to the 'site to the right'.
-    // However, border edges have no 'site to the right': thus we
-    // use the angle of line perpendicular to the halfsegment (the
-    // edge should have both end points defined in such case.)
-
-    if (rSite) {
-      this.angle = Math.atan2(rSite.y - lSite.y, rSite.x - lSite.x);
-    } else {
-      var va = edge.va,
-          vb = edge.vb; // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
-      // but for performance purpose, these are expanded in place here.
-
-      this.angle = edge.lSite === lSite ? Math.atan2(vb.x - va.x, va.y - vb.y) : Math.atan2(va.x - vb.x, vb.y - va.y);
-    }
-  };
-
-  Halfedge.prototype.getStartpoint = function () {
-    return this.edge.lSite === this.site ? this.edge.va : this.edge.vb;
-  };
-
-  Halfedge.prototype.getEndpoint = function () {
-    return this.edge.lSite === this.site ? this.edge.vb : this.edge.va;
-  };
-
   var Vertex = function Vertex(x, y) {
     this.x = x;
     this.y = y;
-  };
-
-  // ---------------------------------------------------------------------------
-  // Circle event methods
-  // rhill 2011-06-07: For some reasons, performance suffers significantly
-  // when instanciating a literal object instead of an empty ctor
-  var CircleEvent = function CircleEvent() {
-    // rhill 2013-10-12: it helps to state exactly what we are at ctor time.
-    this.arc = null;
-    this.rbLeft = null;
-    this.rbNext = null;
-    this.rbParent = null;
-    this.rbPrevious = null;
-    this.rbRed = false;
-    this.rbRight = null;
-    this.site = null;
-    this.x = this.y = this.ycenter = 0;
   };
 
   function Voronoi() {
@@ -757,10 +758,10 @@
     // reduce errors due to computers' finite arithmetic precision.
     // Maybe can still be improved, will see if any more of this
     // kind of errors pop up again.
-    var site = arc.site,
-        rfocx = site.x,
-        rfocy = site.y,
-        pby2 = rfocy - directrix; // parabola in degenerate case where focus is on directrix
+    var site = arc.site;
+    var rfocx = site.x;
+    var rfocy = site.y;
+    var pby2 = rfocy - directrix; // parabola in degenerate case where focus is on directrix
 
     if (!pby2) {
       return rfocx;
@@ -773,17 +774,17 @@
     }
 
     site = lArc.site;
-    var lfocx = site.x,
-        lfocy = site.y,
-        plby2 = lfocy - directrix; // parabola in degenerate case where focus is on directrix
+    var lfocx = site.x;
+    var lfocy = site.y;
+    var plby2 = lfocy - directrix; // parabola in degenerate case where focus is on directrix
 
     if (!plby2) {
       return lfocx;
     }
 
-    var hl = lfocx - rfocx,
-        aby2 = 1 / pby2 - 1 / plby2,
-        b = hl / plby2;
+    var hl = lfocx - rfocx;
+    var aby2 = 1 / pby2 - 1 / plby2;
+    var b = hl / plby2;
 
     if (aby2) {
       return (-b + this.sqrt(b * b - 2 * aby2 * (hl * hl / (-2 * plby2) - lfocy + plby2 / 2 + rfocy - pby2 / 2))) / aby2 + rfocx;
@@ -815,14 +816,14 @@
   };
 
   Voronoi.prototype.removeBeachsection = function (beachsection) {
-    var circle = beachsection.circleEvent,
-        x = circle.x,
-        y = circle.ycenter,
-        vertex = this.createVertex(x, y),
-        previous = beachsection.rbPrevious,
-        next = beachsection.rbNext,
-        disappearingTransitions = [beachsection],
-        abs_fn = Math.abs; // remove collapsed beachsection from beachline
+    var circle = beachsection.circleEvent;
+    var x = circle.x;
+    var y = circle.ycenter;
+    var vertex = this.createVertex(x, y);
+    var previous = beachsection.rbPrevious;
+    var next = beachsection.rbNext;
+    var disappearingTransitions = [beachsection];
+    var abs_fn = Math.abs; // remove collapsed beachsection from beachline
 
     this.detachBeachsection(beachsection); // there could be more than one empty arc at the deletion point, this
     // happens when more than two edges are linked by the same vertex,
@@ -868,8 +869,8 @@
     this.detachCircleEvent(rArc); // walk through all the disappearing transitions between beach sections and
     // set the start point of their (implied) edge.
 
-    var nArcs = disappearingTransitions.length,
-        iArc;
+    var nArcs = disappearingTransitions.length;
+    var iArc;
 
     for (iArc = 1; iArc < nArcs; iArc++) {
       rArc = disappearingTransitions[iArc];
@@ -892,17 +893,17 @@
   };
 
   Voronoi.prototype.addBeachsection = function (site) {
-    var x = site.x,
-        directrix = site.y; // find the left and right beach sections which will surround the newly
+    var x = site.x;
+    var directrix = site.y; // find the left and right beach sections which will surround the newly
     // created beach section.
     // rhill 2011-06-01: This loop is one of the most often executed,
     // hence we expand in-place the comparison-against-epsilon calls.
 
-    var lArc,
-        rArc,
-        dxl,
-        dxr,
-        node = this.beachline.root;
+    var lArc;
+    var rArc;
+    var dxl;
+    var dxr;
+    var node = this.beachline.root;
 
     while (node) {
       dxl = this.leftBreakPoint(node, directrix) - x; // x lessThanWithEpsilon xl => falls somewhere before the left edge of the beachsection
@@ -1003,7 +1004,7 @@
     // on the left -- except of course when there are no beach section at all on
     // the beach line, which case was handled above.
     // rhill 2011-06-02: No point testing in non-debug version
-    //if (!lArc && rArc) {
+    // if (!lArc && rArc) {
     //    throw "Voronoi.addBeachsection(): What is this I don't even";
     //    }
     // [lArc,rArc] where lArc != rArc
@@ -1028,18 +1029,18 @@
       // Except that I bring the origin at A to simplify
       // calculation
 
-      var lSite = lArc.site,
-          ax = lSite.x,
-          ay = lSite.y,
-          bx = site.x - ax,
-          by = site.y - ay,
-          rSite = rArc.site,
-          cx = rSite.x - ax,
-          cy = rSite.y - ay,
-          d = 2 * (bx * cy - by * cx),
-          hb = bx * bx + by * by,
-          hc = cx * cx + cy * cy,
-          vertex = this.createVertex((cy * hb - by * hc) / d + ax, (bx * hc - cx * hb) / d + ay); // one transition disappear
+      var lSite = lArc.site;
+      var ax = lSite.x;
+      var ay = lSite.y;
+      var bx = site.x - ax;
+      var by = site.y - ay;
+      var rSite = rArc.site;
+      var cx = rSite.x - ax;
+      var cy = rSite.y - ay;
+      var d = 2 * (bx * cy - by * cx);
+      var hb = bx * bx + by * by;
+      var hc = cx * cx + cy * cy;
+      var vertex = this.createVertex((cy * hb - by * hc) / d + ax, (bx * hc - cx * hb) / d + ay); // one transition disappear
 
       this.setEdgeStartpoint(rArc.edge, lSite, rSite, vertex); // two new transitions appear at the new vertex location
 
@@ -1049,22 +1050,21 @@
 
       this.attachCircleEvent(lArc);
       this.attachCircleEvent(rArc);
-      return;
     }
   };
 
   Voronoi.prototype.attachCircleEvent = function (arc) {
-    var lArc = arc.rbPrevious,
-        rArc = arc.rbNext;
+    var lArc = arc.rbPrevious;
+    var rArc = arc.rbNext;
 
     if (!lArc || !rArc) {
       return;
     } // does that ever happen?
 
 
-    var lSite = lArc.site,
-        cSite = arc.site,
-        rSite = rArc.site; // If site of left beachsection is same as site of
+    var lSite = lArc.site;
+    var cSite = arc.site;
+    var rSite = rArc.site; // If site of left beachsection is same as site of
     // right beachsection, there can't be convergence
 
     if (lSite === rSite) {
@@ -1081,12 +1081,12 @@
     // Voronoi diagram.
 
 
-    var bx = cSite.x,
-        by = cSite.y,
-        ax = lSite.x - bx,
-        ay = lSite.y - by,
-        cx = rSite.x - bx,
-        cy = rSite.y - by; // If points l->c->r are clockwise, then center beach section does not
+    var bx = cSite.x;
+    var by = cSite.y;
+    var ax = lSite.x - bx;
+    var ay = lSite.y - by;
+    var cx = rSite.x - bx;
+    var cy = rSite.y - by; // If points l->c->r are clockwise, then center beach section does not
     // collapse, hence it can't end up as a vertex (we reuse 'd' here, which
     // sign is reverse of the orientation, hence we reverse the test.
     // http://en.wikipedia.org/wiki/Curve_orientation#Orientation_of_a_simple_polygon
@@ -1099,11 +1099,11 @@
       return;
     }
 
-    var ha = ax * ax + ay * ay,
-        hc = cx * cx + cy * cy,
-        x = (cy * ha - ay * hc) / d,
-        y = (ax * hc - cx * ha) / d,
-        ycenter = y + by; // Important: ybottom should always be under or at sweep, so no need
+    var ha = ax * ax + ay * ay;
+    var hc = cx * cx + cy * cy;
+    var x = (cy * ha - ay * hc) / d;
+    var y = (ax * hc - cx * ha) / d;
+    var ycenter = y + by; // Important: ybottom should always be under or at sweep, so no need
     // to waste CPU cycles by checking
     // recycle circle event object if possible
 
@@ -1122,8 +1122,8 @@
     arc.circleEvent = circleEvent; // find insertion point in RB-tree: circle events are ordered from
     // smallest to largest
 
-    var predecessor = null,
-        node = this.circleEvents.root;
+    var predecessor = null;
+    var node = this.circleEvents.root;
 
     while (node) {
       if (circleEvent.y < node.y || circleEvent.y === node.y && circleEvent.x <= node.x) {
@@ -1133,13 +1133,11 @@
           predecessor = node.rbPrevious;
           break;
         }
+      } else if (node.rbRight) {
+        node = node.rbRight;
       } else {
-        if (node.rbRight) {
-          node = node.rbRight;
-        } else {
-          predecessor = node;
-          break;
-        }
+        predecessor = node;
+        break;
       }
     }
 
@@ -1176,26 +1174,26 @@
     // skip if end point already connected
     var vb = edge.vb;
 
-    if (!!vb) {
+    if (vb) {
       return true;
     } // make local copy for performance purpose
 
 
-    var va = edge.va,
-        xl = bbox.xl,
-        xr = bbox.xr,
-        yt = bbox.yt,
-        yb = bbox.yb,
-        lSite = edge.lSite,
-        rSite = edge.rSite,
-        lx = lSite.x,
-        ly = lSite.y,
-        rx = rSite.x,
-        ry = rSite.y,
-        fx = (lx + rx) / 2,
-        fy = (ly + ry) / 2,
-        fm,
-        fb; // if we reach here, this means cells which use this edge will need
+    var va = edge.va;
+    var xl = bbox.xl;
+    var xr = bbox.xr;
+    var yt = bbox.yt;
+    var yb = bbox.yb;
+    var lSite = edge.lSite;
+    var rSite = edge.rSite;
+    var lx = lSite.x;
+    var ly = lSite.y;
+    var rx = rSite.x;
+    var ry = rSite.y;
+    var fx = (lx + rx) / 2;
+    var fy = (ly + ry) / 2;
+    var fm;
+    var fb; // if we reach here, this means cells which use this edge will need
     // to be closed, whether because the edge was removed, or because it
     // was connected to the bounding box.
 
@@ -1308,14 +1306,14 @@
 
 
   Voronoi.prototype.clipEdge = function (edge, bbox) {
-    var ax = edge.va.x,
-        ay = edge.va.y,
-        bx = edge.vb.x,
-        by = edge.vb.y,
-        t0 = 0,
-        t1 = 1,
-        dx = bx - ax,
-        dy = by - ay; // left
+    var ax = edge.va.x;
+    var ay = edge.va.y;
+    var bx = edge.vb.x;
+    var by = edge.vb.y;
+    var t0 = 0;
+    var t1 = 1;
+    var dx = bx - ax;
+    var dy = by - ay; // left
 
     var q = ax - bbox.xl;
 
@@ -1455,10 +1453,10 @@
   Voronoi.prototype.clipEdges = function (bbox) {
     // connect all dangling edges to bounding box
     // or get rid of them if it can't be done
-    var edges = this.edges,
-        iEdge = edges.length,
-        edge,
-        abs_fn = Math.abs; // iterate backward so we can splice safely
+    var edges = this.edges;
+    var iEdge = edges.length;
+    var edge;
+    var abs_fn = Math.abs; // iterate backward so we can splice safely
 
     while (iEdge--) {
       edge = edges[iEdge]; // edge is removed if:
@@ -1477,22 +1475,22 @@
 
 
   Voronoi.prototype.closeCells = function (bbox) {
-    var xl = bbox.xl,
-        xr = bbox.xr,
-        yt = bbox.yt,
-        yb = bbox.yb,
-        cells = this.cells,
-        iCell = cells.length,
-        cell,
-        iLeft,
-        halfedges,
-        nHalfedges,
-        edge,
-        va,
-        vb,
-        vz,
-        lastBorderSegment,
-        abs_fn = Math.abs;
+    var xl = bbox.xl;
+    var xr = bbox.xr;
+    var yt = bbox.yt;
+    var yb = bbox.yb;
+    var cells = this.cells;
+    var iCell = cells.length;
+    var cell;
+    var iLeft;
+    var halfedges;
+    var nHalfedges;
+    var edge;
+    var va;
+    var vb;
+    var vz;
+    var lastBorderSegment;
+    var abs_fn = Math.abs;
 
     while (iCell--) {
       cell = cells[iCell]; // prune, order halfedges counterclockwise, then add missing ones
@@ -1671,9 +1669,9 @@
 
 
   Voronoi.prototype.quantizeSites = function (sites) {
-    var ε = this.ε,
-        n = sites.length,
-        site;
+    var ε = this.ε;
+    var n = sites.length;
+    var site;
 
     while (n--) {
       site = sites[n];
@@ -1729,13 +1727,13 @@
       return b.x - a.x;
     }); // process queue
 
-    var site = siteEvents.pop(),
-        siteid = 0,
-        xsitex,
-        // to avoid duplicate sites
-    xsitey,
-        cells = this.cells,
-        circle; // main loop
+    var site = siteEvents.pop();
+    var siteid = 0;
+    var xsitex; // to avoid duplicate sites
+
+    var xsitey;
+    var cells = this.cells;
+    var circle; // main loop
 
     for (;;) {
       // we need to figure whether we handle a site or circle event

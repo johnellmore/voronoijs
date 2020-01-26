@@ -11,8 +11,8 @@ const Halfedge = function(edge, lSite, rSite) {
   if (rSite) {
     this.angle = Math.atan2(rSite.y - lSite.y, rSite.x - lSite.x);
   } else {
-    var va = edge.va,
-      vb = edge.vb;
+    const { va } = edge;
+    const { vb } = edge;
     // rhill 2011-05-31: used to call getStartpoint()/getEndpoint(),
     // but for performance purpose, these are expanded in place here.
     this.angle =

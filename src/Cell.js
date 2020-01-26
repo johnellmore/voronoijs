@@ -15,9 +15,9 @@ Cell.prototype.init = function(site) {
 };
 
 Cell.prototype.prepareHalfedges = function() {
-  var halfedges = this.halfedges,
-    iHalfedge = halfedges.length,
-    edge;
+  const { halfedges } = this;
+  let iHalfedge = halfedges.length;
+  let edge;
   // get rid of unused halfedges
   // rhill 2011-05-27: Keep it simple, no point here in trying
   // to be fancy: dangling edges are a typically a minority.
@@ -41,9 +41,9 @@ Cell.prototype.prepareHalfedges = function() {
 
 // Return a list of the neighbor Ids
 Cell.prototype.getNeighborIds = function() {
-  var neighbors = [],
-    iHalfedge = this.halfedges.length,
-    edge;
+  const neighbors = [];
+  let iHalfedge = this.halfedges.length;
+  let edge;
   while (iHalfedge--) {
     edge = this.halfedges[iHalfedge].edge;
     if (edge.lSite !== null && edge.lSite.voronoiId != this.site.voronoiId) {
@@ -61,15 +61,15 @@ Cell.prototype.getNeighborIds = function() {
 // Compute bounding box
 //
 Cell.prototype.getBbox = function() {
-  var halfedges = this.halfedges,
-    iHalfedge = halfedges.length,
-    xmin = Infinity,
-    ymin = Infinity,
-    xmax = -Infinity,
-    ymax = -Infinity,
-    v,
-    vx,
-    vy;
+  const { halfedges } = this;
+  let iHalfedge = halfedges.length;
+  let xmin = Infinity;
+  let ymin = Infinity;
+  let xmax = -Infinity;
+  let ymax = -Infinity;
+  let v;
+  let vx;
+  let vy;
   while (iHalfedge--) {
     v = halfedges[iHalfedge].getStartpoint();
     vx = v.x;
@@ -115,12 +115,12 @@ Cell.prototype.pointIntersection = function(x, y) {
   //   "if it is less than 0 then P is to the right of the line segment,
   //   "if greater than 0 it is to the left, if equal to 0 then it lies
   //   "on the line segment"
-  var halfedges = this.halfedges,
-    iHalfedge = halfedges.length,
-    halfedge,
-    p0,
-    p1,
-    r;
+  const { halfedges } = this;
+  let iHalfedge = halfedges.length;
+  let halfedge;
+  let p0;
+  let p1;
+  let r;
   while (iHalfedge--) {
     halfedge = halfedges[iHalfedge];
     p0 = halfedge.getStartpoint();

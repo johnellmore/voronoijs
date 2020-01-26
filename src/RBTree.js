@@ -7,7 +7,7 @@ const RBTree = function() {
 };
 
 RBTree.prototype.rbInsertSuccessor = function(node, successor) {
-  var parent;
+  let parent;
   if (node) {
     // >>> rhill 2011-05-27: Performance: cache previous/next nodes
     successor.rbPrevious = node;
@@ -53,7 +53,8 @@ RBTree.prototype.rbInsertSuccessor = function(node, successor) {
   // Fixup the modified tree by recoloring nodes and performing
   // rotations (2 at most) hence the red-black tree properties are
   // preserved.
-  var grandpa, uncle;
+  let grandpa;
+  let uncle;
   node = successor;
   while (parent && parent.rbRed) {
     grandpa = parent.rbParent;
@@ -105,10 +106,10 @@ RBTree.prototype.rbRemoveNode = function(node) {
   }
   node.rbNext = node.rbPrevious = null;
   // <<<
-  var parent = node.rbParent,
-    left = node.rbLeft,
-    right = node.rbRight,
-    next;
+  let parent = node.rbParent;
+  const left = node.rbLeft;
+  const right = node.rbRight;
+  let next;
   if (!left) {
     next = right;
   } else if (!right) {
@@ -126,7 +127,7 @@ RBTree.prototype.rbRemoveNode = function(node) {
     this.root = next;
   }
   // enforce red-black rules
-  var isRed;
+  let isRed;
   if (left && right) {
     isRed = next.rbRed;
     next.rbRed = node.rbRed;
@@ -162,7 +163,7 @@ RBTree.prototype.rbRemoveNode = function(node) {
     return;
   }
   // the other cases
-  var sibling;
+  let sibling;
   do {
     if (node === this.root) {
       break;
@@ -226,9 +227,9 @@ RBTree.prototype.rbRemoveNode = function(node) {
 };
 
 RBTree.prototype.rbRotateLeft = function(node) {
-  var p = node,
-    q = node.rbRight, // can't be null
-    parent = p.rbParent;
+  const p = node;
+  const q = node.rbRight; // can't be null
+  const parent = p.rbParent;
   if (parent) {
     if (parent.rbLeft === p) {
       parent.rbLeft = q;
@@ -248,9 +249,9 @@ RBTree.prototype.rbRotateLeft = function(node) {
 };
 
 RBTree.prototype.rbRotateRight = function(node) {
-  var p = node,
-    q = node.rbLeft, // can't be null
-    parent = p.rbParent;
+  const p = node;
+  const q = node.rbLeft; // can't be null
+  const parent = p.rbParent;
   if (parent) {
     if (parent.rbLeft === p) {
       parent.rbLeft = q;
