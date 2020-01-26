@@ -25,7 +25,7 @@ Voronoi.prototype.reset = function() {
   }
   // Move leftover beachsections to the beachsection junkyard.
   if (this.beachline.root) {
-    let beachsection = this.beachline.getFirst(this.beachline.root);
+    let beachsection = this.beachline.getFirst();
     while (beachsection) {
       this.beachsectionJunkyard.push(beachsection); // mark for reuse
       beachsection = beachsection.rbNext;
@@ -1115,7 +1115,7 @@ Voronoi.prototype.dumpBeachline = function(y) {
   if (!this.beachline) {
     console.log("  None");
   } else {
-    let bs = this.beachline.getFirst(this.beachline.root);
+    let bs = this.beachline.getFirst();
     while (bs) {
       console.log(
         "  site %d: xl: %f, xr: %f",
