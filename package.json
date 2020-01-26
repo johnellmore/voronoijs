@@ -7,7 +7,7 @@
   "browser": "dist/voronoi.umd.js",
   "scripts": {
     "build": "rollup -c",
-    "test": "jest && npm build"
+    "test": "jest"
   },
   "keywords": [
     "voronoi",
