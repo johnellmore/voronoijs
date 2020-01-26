@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Diagram methods
-const Diagram = function(site) {
-  this.site = site;
-};
-
-export default Diagram;
+export default class Diagram {
+  constructor(site) {
+    this.site = site;
+  }
+}
