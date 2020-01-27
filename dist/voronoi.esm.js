@@ -12,13 +12,6 @@ class Cell {
     this.site = site;
   }
 
-  init(site) {
-    this.site = site;
-    this.halfedges = [];
-    this.closeMe = false;
-    return this;
-  }
-
   prepareHalfedges() {
     const { halfedges } = this;
     let iHalfedge = halfedges.length;
@@ -589,7 +582,6 @@ class Voronoi {
     this.circleEventJunkyard = [];
     this.vertexJunkyard = [];
     this.edgeJunkyard = [];
-    this.cellJunkyard = [];
   }
 
   reset() {
@@ -613,14 +605,6 @@ class Voronoi {
     this.vertices = [];
     this.edges = [];
     this.cells = [];
-  }
-
-  createCell(site) {
-    const cell = this.cellJunkyard.pop();
-    if (cell) {
-      return cell.init(site);
-    }
-    return new Cell(site);
   }
 
   /**
@@ -1692,7 +1676,6 @@ class Voronoi {
     if (this.toRecycle) {
       this.vertexJunkyard = this.vertexJunkyard.concat(this.toRecycle.vertices);
       this.edgeJunkyard = this.edgeJunkyard.concat(this.toRecycle.edges);
-      this.cellJunkyard = this.cellJunkyard.concat(this.toRecycle.cells);
       this.toRecycle = null;
     }
 
@@ -1731,7 +1714,7 @@ class Voronoi {
         // only if site is not a duplicate
         if (site.x !== xsitex || site.y !== xsitey) {
           // first create cell for new site
-          cells[siteid] = this.createCell(site);
+          cells[siteid] = new Cell(site);
           site.voronoiId = siteid++;
           // then create a beachsection for that site
           this.addBeachsection(site);

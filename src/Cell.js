@@ -8,13 +8,6 @@ export default class Cell {
     this.site = site;
   }
 
-  init(site) {
-    this.site = site;
-    this.halfedges = [];
-    this.closeMe = false;
-    return this;
-  }
-
   prepareHalfedges() {
     const { halfedges } = this;
     let iHalfedge = halfedges.length;

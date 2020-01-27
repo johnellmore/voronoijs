@@ -39,5 +39,6 @@
     "rollup-plugin-node-resolve": "5.2.0",
     "seedrandom": "^3.0.5"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "sideEffects": false
 }
