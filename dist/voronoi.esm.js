@@ -165,17 +165,47 @@ class CircleEvent {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Diagram methods
+/**
+ * An object which describes the computed Voronoi diagram.
+ *
+ * @param {Vertex[]} vertices - An array of unordered, unique `Vertex` objects
+ * making up the Voronoi diagram. Each `Vertex` object in the list is shared by
+ * many `Edge` objects.
+ * @param {Edge[]} edges - An array of unordered, unique `Edge` objects making
+ * up the Voronoi diagram. `Edge`s are defined by two vertices, `va` and `vb`,
+ * which vertices are shared by connected edges. This mean that if you change
+ * one vertex belonging to an edge, other connected edges will also be changed.
+ * @param {Cell[]} cells - An array of `Cell` objects making up the Voronoi
+ * diagram. A `Cell` object might have an empty array of halfedges, meaning no
+ * Voronoi cell could be computed for a particular cell.
+ * @param {Number} execTime - The time it took to compute the Voronoi diagram,
+ * in milliseconds.
+ */
 class Diagram {
-  constructor(site) {
-    this.site = site;
+  constructor() {
+    this.cells = [];
+    this.edges = [];
+    this.vertices = [];
+    this.execTime = 0;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Edge methods
-//
+/**
+ * Represents the edge between two sites (or one site and the edge of the box).
+ *
+ * @param {object|null} lSite - The Voronoi site object at the left of this
+ * edge. The site object is just a reference to a site in the array of sites
+ * supplied by the user when Voronoi.compute() was called. Can be null when this
+ * is a border edge.
+ * @param {object|null} rSite - The Voronoi site object at the right of this
+ * edge. The site object is just a reference to a site in the array of sites
+ * supplied by the user when Voronoi.compute() was called. Can be null when this
+ * is a border edge.
+ * @param {object} va - A Vertex object with an x and a y property defining the
+ * start point (relative to the Voronoi site on the left) of this edge object.
+ * @param {object} vb - A Vertex object with an x and a y property defining the
+ * end point (relative to the Voronoi site on the left) of this edge object.
+ */
 class Edge {
   constructor(lSite, rSite) {
     this.lSite = lSite;
@@ -533,7 +563,7 @@ class Vertex {
   }
 }
 
-/* eslint-disable no-continue, no-plusplus, no-param-reassign */
+/* eslint-disable no-plusplus, no-param-reassign */
 
 const ε = 1e-9;
 
@@ -1620,13 +1650,10 @@ class Voronoi {
    * added.
    */
   static quantizeSites(sites) {
-    let n = sites.length;
-    let site;
-    while (n--) {
-      site = sites[n];
+    sites.forEach(site => {
       site.x = Math.floor(site.x / ε) * ε;
       site.y = Math.floor(site.y / ε) * ε;
-    }
+    });
   }
 
   // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/* eslint-disable no-continue, no-plusplus, no-param-reassign */
+/* eslint-disable no-plusplus, no-param-reassign */
 import Beachsection from "./Beachsection";
 import Cell from "./Cell";
 import CircleEvent from "./CircleEvent";
@@ -1093,13 +1093,10 @@ export default class Voronoi {
    * added.
    */
   static quantizeSites(sites) {
-    let n = sites.length;
-    let site;
-    while (n--) {
-      site = sites[n];
+    sites.forEach(site => {
       site.x = Math.floor(site.x / ε) * ε;
       site.y = Math.floor(site.y / ε) * ε;
-    }
+    });
   }
 
   // ---------------------------------------------------------------------------
